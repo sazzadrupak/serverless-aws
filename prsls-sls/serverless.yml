@@ -1,0 +1,66 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: myselfrupak
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: prsls-sls-sazzad
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Scan
+          Resource:
+            - !GetAtt RestaurantsTable.Arn
+
+functions:
+  get-index:
+    handler: functions/get-index.handler
+    description: 'Get index page'
+    events:
+      - http:
+          path: /
+          method: get
+    environment:
+      restaurants_api: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}/restaurants
+
+  get-restaurants:
+    handler: functions/get-restaurants.handler
+    description: 'Get all restaurants'
+    events:
+      - http:
+          path: /restaurants
+          method: get
+    environment:
+      default_results: 8
+      restaurants_table: !Ref RestaurantsTable
+resources:
+  Resources:
+    RestaurantsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: name
+            AttributeType: S
+        KeySchema:
+          - AttributeName: name
+            KeyType: HASH
+  Outputs:
+    RestaurantTableName:
+      Value: !Ref RestaurantsTable
+      Export:
+        Name: RestaurantTableName
+    RestaurantTableArn:
+      Value: !GetAtt RestaurantsTable.Arn
+      Export:
+        Name: RestaurantTableArn
+
+plugins:
+  - serverless-export-env
+custom:
+  export-env:
+    overwrite: true
