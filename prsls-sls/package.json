@@ -4,7 +4,8 @@
   "description": "<!-- title: 'AWS Simple HTTP Endpoint example in NodeJS' description: 'This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda and API Gateway using the Serverless Framework.' layout: Doc framework: v4 platform: AWS language: nodeJS authorLink: 'https://github.com/serverless' authorName: 'Serverless, Inc.' authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4' -->",
   "main": "handler.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dotEnv": "sls export-env --all",
+    "test": "npm run dotEnv && vitest"
   },
   "keywords": [],
   "author": "",
@@ -13,11 +14,15 @@
     "@aws-sdk/client-dynamodb": "^3.812.0",
     "@aws-sdk/credential-providers": "^3.812.0",
     "@aws-sdk/lib-dynamodb": "^3.814.0",
+    "cheerio": "^1.0.0",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.5.0",
-    "serverless-export-env": "^2.2.0"
+    "serverless-export-env": "^2.2.0",
+    "vitest": "^3.1.4"
   },
   "dependencies": {
     "aws4fetch": "^1.0.20",
+    "lodash": "^4.17.21",
     "mustache": "^4.2.0"
   }
 }
