@@ -53,6 +53,63 @@ resources:
         KeySchema:
           - AttributeName: name
             KeyType: HASH
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:service}-${sls:stage}
+        AliasAttributes: # Allow users to log in with their email addresses.
+          - email
+        UsernameConfiguration:
+          CaseSensitive: false
+        AutoVerifiedAttributes: # Verify that a user owns his/her email address (ie. by sending a verification code to the email)
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireUppercase: true
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: true
+        Schema:
+          - AttributeDataType: String
+            Name: given_name
+            Required: true
+            Mutable: true
+            StringAttributeConstraints:
+              MinLength: '1'
+              MaxLength: '50'
+          - AttributeDataType: String
+            Name: family_name
+            Required: true
+            Mutable: true
+            StringAttributeConstraints:
+              MinLength: '1'
+              MaxLength: '50'
+          - AttributeDataType: String
+            Name: email
+            Required: true
+            Mutable: true
+            StringAttributeConstraints:
+              MinLength: '1'
+              MaxLength: '50'
+    WebCognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: web
+        UserPoolId: !Ref CognitoUserPool
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        PreventUserExistenceErrors: ENABLED
+    ServerCognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: server
+        UserPoolId: !Ref CognitoUserPool
+        ExplicitAuthFlows:
+          - ALLOW_ADMIN_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        PreventUserExistenceErrors: ENABLED
   Outputs:
     RestaurantTableName:
       Value: !Ref RestaurantsTable
@@ -62,7 +119,12 @@ resources:
       Value: !GetAtt RestaurantsTable.Arn
       Export:
         Name: RestaurantTableArn
-
+    CognitoUserPoolId:
+      Value: !Ref CognitoUserPool
+    CognitoUserPoolArn:
+      Value: !GetAtt CognitoUserPool.Arn
+    CognitoUserPoolWebClientId:
+      Value: !Ref WebCognitoUserPoolClient
 plugins:
   - serverless-export-env
 custom:
