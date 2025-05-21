@@ -4,6 +4,9 @@ import fs from 'fs';
 import Mustache from 'mustache';
 
 const restaurantsApiRoot = process.env.restaurants_api;
+const cognitoUserPoolId = process.env.cognito_user_pool_id;
+const cognitoClientId = process.env.cognito_client_id;
+const awsRegion = process.env.AWS_REGION;
 const days = [
   'Sunday',
   'Monday',
@@ -22,36 +25,29 @@ const aws = new AwsClient({
   sessionToken: credentials.sessionToken,
 });
 
-let html;
-
-function loadHtml() {
-  if (!html) {
-    console.log('loading index.html...');
-    html = fs.readFileSync('static/index.html', 'utf-8');
-    console.log('loaded');
-  }
-
-  return html;
-}
+const template = fs.readFileSync('static/index.html', 'utf-8');
 
 const getRestaurants = async () => {
   const resp = await aws.fetch(restaurantsApiRoot);
   if (!resp.ok) {
-    console.error(
-      `Error fetching restaurants: ${resp.status} ${resp.statusText}`
-    );
-    throw new Error(
-      `Error fetching restaurants: ${resp.status} ${resp.statusText}`
-    );
+    throw new Error('Failed to fetch restaurants: ' + resp.statusText);
   }
   return await resp.json();
 };
 
 export const handler = async (event, context) => {
-  const template = loadHtml();
   const restaurants = await getRestaurants();
+  console.log(`found ${restaurants.length} restaurants`);
   const dayOfWeek = days[new Date().getDay()];
-  const html = Mustache.render(template, { dayOfWeek, restaurants });
+  const view = {
+    awsRegion,
+    cognitoUserPoolId,
+    cognitoClientId,
+    dayOfWeek,
+    restaurants,
+    searchUrl: `${restaurantsApiRoot}/search`,
+  };
+  const html = Mustache.render(template, view);
   const response = {
     statusCode: 200,
     headers: {
