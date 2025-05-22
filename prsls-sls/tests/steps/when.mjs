@@ -46,7 +46,7 @@ const viaHttp = async (relPath, method, opts) => {
   }
 
   const respBody =
-    respHeaders['Content-Type'] === 'application/json'
+    respHeaders['content-type'] === 'application/json'
       ? await res.json()
       : await res.text();
 
@@ -84,8 +84,16 @@ export const we_invoke_get_index = async () => {
   }
 };
 
-export const we_invoke_get_restaurants = () =>
-  viaHandler({}, 'get-restaurants');
+export const we_invoke_get_restaurants = async () => {
+  switch (mode) {
+    case 'handler':
+      return await viaHandler({}, 'get-restaurants');
+    case 'http':
+      return await viaHttp('restaurants', 'GET', { iam_auth: true });
+    default:
+      throw new Error(`unsupported mode: ${mode}`);
+  }
+};
 
 export const we_invoke_search_restaurants = (theme) => {
   let event = {
