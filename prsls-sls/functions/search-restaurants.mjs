@@ -6,7 +6,7 @@ import ssm from '@middy/ssm';
 const dynamodbClient = new DynamoDB();
 const dynamodb = DynamoDBDocumentClient.from(dynamodbClient);
 
-const { serviceName, stage } = process.env;
+const { serviceName, ssmStage } = process.env;
 const tableName = process.env.restaurants_table;
 
 const findRestaurantsByTheme = async (theme, count) => {
@@ -45,7 +45,7 @@ export const handler = middy(async (event, context) => {
     cacheExpiry: 1 * 60 * 1000, // 1 mins
     setToContext: true,
     fetchData: {
-      config: `/${serviceName}/${stage}/search-restaurants/config`,
+      config: `/${serviceName}/${ssmStage}/search-restaurants/config`,
     },
   })
 );

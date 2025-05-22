@@ -6,7 +6,7 @@ import ssm from '@middy/ssm';
 const dynamodbClient = new DynamoDB();
 const dynamodb = DynamoDBDocumentClient.from(dynamodbClient);
 
-const { serviceName, stage } = process.env;
+const { serviceName, ssmStage } = process.env;
 const tableName = process.env.restaurants_table;
 
 const getRestaurants = async (count) => {
@@ -36,7 +36,7 @@ export const handler = middy(async (event, context) => {
     cacheExpiry: 1 * 60 * 1000, // 1 minute
     setToContext: true, // fetches individual parameters and stores them in either the invocation context object or the environment variables. By default, they are stored in the environment variables, but we can use the optional config setToContext to tell the middleware to store them in the context object instead.
     fetchData: {
-      config: `/${serviceName}/${stage}/get-restaurants/config`,
+      config: `/${serviceName}/${ssmStage}/get-restaurants/config`,
     },
   })
 );
