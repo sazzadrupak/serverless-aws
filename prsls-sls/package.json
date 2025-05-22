@@ -5,7 +5,8 @@
   "main": "handler.js",
   "scripts": {
     "dotEnv": "sls export-env --all",
-    "test": "npm run dotEnv && vitest"
+    "test": "npm run dotEnv && cross-env TEST_MODE=handler vitest",
+    "test:e2e": "npm run dotEnv && cross-env TEST_MODE=http vitest"
   },
   "keywords": [],
   "author": "",
