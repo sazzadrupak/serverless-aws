@@ -27,6 +27,7 @@ const findRestaurantsByTheme = async (theme, count) => {
 };
 
 export const handler = middy(async (event, context) => {
+  console.log('Secure string', context.secretString);
   const req = JSON.parse(event.body);
   const theme = req.theme;
   const restaurants = await findRestaurantsByTheme(
@@ -46,6 +47,7 @@ export const handler = middy(async (event, context) => {
     setToContext: true,
     fetchData: {
       config: `/${serviceName}/${ssmStage}/search-restaurants/config`,
+      secretString: `/${serviceName}/${ssmStage}/search-restaurants/secretString`,
     },
   })
 );
