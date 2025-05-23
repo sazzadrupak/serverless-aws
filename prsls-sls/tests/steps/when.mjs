@@ -67,7 +67,7 @@ const viaHandler = async (event, functionName) => {
     'headers.content-type',
     'application/json'
   );
-  if (response.body && contentType === 'application/json') {
+  if (_.get(response, 'body') && contentType === 'application/json') {
     response.body = JSON.parse(response.body);
   }
   return response;
@@ -109,5 +109,27 @@ export const we_invoke_search_restaurants = async (theme, user) => {
       });
     default:
       throw new Error(`unsupported mode: ${mode}`);
+  }
+};
+
+export const we_invoke_place_order = async (user, restaurantName) => {
+  const body = JSON.stringify({ restaurantName });
+
+  switch (mode) {
+    case 'handler':
+      return await viaHandler({ body }, 'place-order');
+    case 'http':
+      const auth = user.idToken;
+      return await viaHttp('orders', 'POST', { body, auth });
+    default:
+      throw new Error(`unsupported mode: ${mode}`);
+  }
+};
+
+export const we_invoke_notify_restaurant = async (event) => {
+  if (mode === 'handler') {
+    await viaHandler(event, 'notify-restaurant');
+  } else {
+    throw new Error('not supported');
   }
 };

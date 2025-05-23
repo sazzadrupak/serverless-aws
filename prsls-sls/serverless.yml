@@ -27,6 +27,14 @@ provider:
         - Effect: Allow
           Action: kms:Decrypt
           Resource: ${ssm:/${self:service}/${param:ssmStage, sls:stage}/kmsArn}
+        - Effect: Allow
+          Action:
+            - events:PutEvents
+          Resource: !GetAtt EventBus.Arn
+        - Effect: Allow
+          Action:
+            - sns:Publish
+          Resource: !Ref RestaurantNotificationTopic
 
   environment:
     rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}
@@ -47,6 +55,7 @@ functions:
       cognito_user_pool_id: !Ref CognitoUserPool
       cognito_client_id: !Ref WebCognitoUserPoolClient
       cognito_server_client_id: !Ref ServerCognitoUserPoolClient
+      orders_api: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}/orders
 
   get-restaurants:
     handler: functions/get-restaurants.handler
@@ -71,6 +80,32 @@ functions:
             arn: !GetAtt CognitoUserPool.Arn
     environment:
       restaurants_table: !Ref RestaurantsTable
+  place-order:
+    handler: functions/place-order.handler
+    description: 'Place order'
+    events:
+      - http:
+          path: /orders
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            name: CognitoAuthorizer
+            arn: !GetAtt CognitoUserPool.Arn
+    environment:
+      bus_name: !Ref EventBus
+  notify-restaurant:
+    handler: functions/notify-restaurant.handler
+    description: 'Notify restaurant'
+    events:
+      - eventBridge:
+          pattern:
+            source:
+              - big-mouth
+            detail-type:
+              - order_placed
+    environment:
+      bus_name: !Ref EventBus
+      restaurant_notification_topic: !Ref RestaurantNotificationTopic
 resources:
   Resources:
     RestaurantsTable:
@@ -151,6 +186,14 @@ resources:
             - - 'https://'
               - !Ref ApiGatewayRestApi
               - .execute-api.${aws:region}.amazonaws.com/${sls:stage}
+    EventBus:
+      Type: AWS::Events::EventBus
+      Properties:
+        Name: ${self:service}_${sls:stage}_order_events
+    RestaurantNotificationTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:service}_${sls:stage}_restaurant_notifications
 
   Outputs:
     RestaurantTableName:
@@ -167,6 +210,12 @@ resources:
       Value: !GetAtt CognitoUserPool.Arn
     CognitoUserPoolWebClientId:
       Value: !Ref WebCognitoUserPoolClient
+    EventBusName:
+      Value: !Ref EventBus
+    RestaurantNotificationTopicName:
+      Value: !GetAtt RestaurantNotificationTopic.TopicName
+    RestaurantNotificationTopicArn:
+      Value: !Ref RestaurantNotificationTopic
 plugins:
   - serverless-export-env
 custom:
