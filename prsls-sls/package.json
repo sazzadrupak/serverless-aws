@@ -5,8 +5,8 @@
   "main": "handler.js",
   "scripts": {
     "dotEnv": "sls export-env --all",
-    "test": "npm run dotEnv && cross-env TEST_MODE=handler vitest",
-    "test:e2e": "npm run dotEnv && cross-env TEST_MODE=http vitest"
+    "test": "cross-env TEST_MODE=handler vitest",
+    "test:e2e": "cross-env TEST_MODE=http vitest"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +30,7 @@
     "vitest": "^3.1.4"
   },
   "dependencies": {
+    "@aws-lambda-powertools/idempotency": "^2.20.0",
     "@middy/core": "^6.3.0",
     "@middy/ssm": "^6.3.0",
     "aws4fetch": "^1.0.20",
