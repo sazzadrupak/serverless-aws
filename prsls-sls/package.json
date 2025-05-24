@@ -26,6 +26,7 @@
     "rxjs": "^7.8.2",
     "serverless-export-env": "^2.2.0",
     "serverless-export-outputs": "^1.0.2",
+    "serverless-iam-roles-per-function": "^3.2.0",
     "serverless-plugin-extrinsic-functions": "^1.1.1",
     "vitest": "^3.1.4"
   },
