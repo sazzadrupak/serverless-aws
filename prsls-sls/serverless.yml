@@ -12,7 +12,10 @@ provider:
     serviceName: ${self:service}
     stage: ${sls:stage}
     ssmStage: ${param:ssmStage, sls:stage}
-
+stepFunctions:
+  stateMachines:
+    orderFlow:
+      definition: ${file(state_machines/order-flow.yml)}
 functions:
   get-index:
     handler: functions/get-index.handler
@@ -388,6 +391,9 @@ resources:
         KeySchema:
           - AttributeName: id
             KeyType: HASH
+    UserNotificationTopic:
+      Type: AWS::SNS::Topic
+
   Outputs:
     RestaurantTableName:
       Value: !Ref RestaurantsTable
@@ -420,6 +426,7 @@ plugins:
   - serverless-export-outputs
   - serverless-plugin-extrinsic-functions
   - serverless-iam-roles-per-function
+  - serverless-step-functions
 
 custom:
   export-env:
