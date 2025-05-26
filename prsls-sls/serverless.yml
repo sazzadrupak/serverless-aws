@@ -131,6 +131,31 @@ functions:
       - Effect: Allow
         Action: sqs:SendMessage
         Resource: !GetAtt OnFailureQueue.Arn
+  seed-orders:
+    handler: functions/seed-orders.handler
+    description: 'Seed orders for testing'
+    events:
+      - eventBridge:
+          eventBus: !Ref EventBus
+          pattern:
+            source:
+              - big-mouth
+            detail-type:
+              - order_placed
+    environment:
+      orders_table: !Ref OrdersTable
+      idempotency_table: !Ref IdempotencyTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+        Resource: !GetAtt IdempotencyTable.Arn
+      - Effect: Allow
+        Action: dynamodb:PutItem
+        Resource: !GetAtt OrdersTable.Arn
 resources:
   Conditions:
     IsE2eTest:
@@ -346,6 +371,23 @@ resources:
             Value: !Ref NotifyDashrestaurantLambdaFunction # Serverless Framework generates this name for the notify-restaurant function in the serverless.yml.
         AlarmActions:
           - !Ref AlarmTopic
+    EventBusArchive:
+      Type: AWS::Events::Archive
+      Properties:
+        ArchiveName: ${self:service}-${sls:stage}-order-events-archive
+        SourceArn: !GetAtt EventBus.Arn
+        Description: 'Archive for order events'
+        RetentionDays: 0 # Set to 0 to keep the archive indefinitely
+    OrdersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
   Outputs:
     RestaurantTableName:
       Value: !Ref RestaurantsTable
