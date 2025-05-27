@@ -1,8 +1,12 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { AwsClient } from 'aws4fetch';
 import fs from 'fs';
 import Mustache from 'mustache';
 
+const logger = new Logger({
+  serviceName: process.env.SERVICE_NAME || 'get-index',
+});
 const restaurantsApiRoot = process.env.restaurants_api;
 const ordersApiRoot = process.env.orders_api;
 const cognitoUserPoolId = process.env.cognito_user_pool_id;
@@ -29,6 +33,8 @@ const aws = new AwsClient({
 const template = fs.readFileSync('static/index.html', 'utf-8');
 
 const getRestaurants = async () => {
+  logger.debug('getting restaurants...', { url: restaurantsApiRoot });
+
   const resp = await aws.fetch(restaurantsApiRoot);
   if (!resp.ok) {
     throw new Error('Failed to fetch restaurants: ' + resp.statusText);
@@ -38,7 +44,7 @@ const getRestaurants = async () => {
 
 export const handler = async (event, context) => {
   const restaurants = await getRestaurants();
-  console.log(`found ${restaurants.length} restaurants`);
+  logger.debug('got restaurants', { count: restaurants.length });
   const dayOfWeek = days[new Date().getDay()];
   const view = {
     awsRegion,

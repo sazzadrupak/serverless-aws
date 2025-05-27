@@ -12,6 +12,9 @@ provider:
     serviceName: ${self:service}
     stage: ${sls:stage}
     ssmStage: ${param:ssmStage, sls:stage}
+    middy_cache_enabled: true
+    middy_cache_expiry_milliseconds: 60000
+    LOG_LEVEL: ${self:custom.logLevel.${sls:stage}, self:custom.logLevel.default}
 stepFunctions:
   stateMachines:
     orderFlow:
@@ -437,3 +440,6 @@ custom:
       - CognitoUserPoolServerClientId
     output:
       file: ./.env.cfnoutputs
+  logLevel:
+    prod: INFO
+    default: DEBUG

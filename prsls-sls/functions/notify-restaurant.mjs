@@ -1,11 +1,13 @@
 import { makeIdempotent } from '@aws-lambda-powertools/idempotency';
 import { DynamoDBPersistenceLayer } from '@aws-lambda-powertools/idempotency/dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import {
   EventBridgeClient,
   PutEventsCommand,
 } from '@aws-sdk/client-eventbridge';
 import { PublishCommand, SNSClient } from '@aws-sdk/client-sns';
 
+const logger = new Logger({ serviceName: process.env.serviceName });
 const eventBridge = new EventBridgeClient();
 const sns = new SNSClient();
 
@@ -24,7 +26,7 @@ const _handler = async (event) => {
   await sns.send(publishCmd);
 
   const { restaurantName, orderId } = order;
-  console.log(`notified restaurant [${restaurantName}] of order [${orderId}]`);
+  logger.debug('notified restaurant', { orderId, restaurantName });
 
   const putEventsCmd = new PutEventsCommand({
     Entries: [
@@ -38,7 +40,11 @@ const _handler = async (event) => {
   });
   await eventBridge.send(putEventsCmd);
 
-  console.log(`published 'restaurant_notified' event to EventBridge`);
+  logger.debug(`published event into EventBridge`, {
+    eventType: 'restaurant_notified',
+    busName,
+  });
+
   return orderId;
 };
 

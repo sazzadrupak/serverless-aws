@@ -1,8 +1,10 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import middy from '@middy/core';
 import ssm from '@middy/ssm';
 
+const logger = new Logger({ serviceName: process.env.serviceName });
 const dynamodbClient = new DynamoDB();
 const dynamodb = DynamoDBDocumentClient.from(dynamodbClient);
 
@@ -10,7 +12,10 @@ const { serviceName, ssmStage } = process.env;
 const tableName = process.env.restaurants_table;
 
 const getRestaurants = async (count) => {
-  console.log(`fetching ${count} restaurants from ${tableName}...`);
+  logger.debug('getting restaurants from DynamoDB...', {
+    count,
+    tableName,
+  });
 
   const resp = await dynamodb.send(
     new ScanCommand({
@@ -18,7 +23,9 @@ const getRestaurants = async (count) => {
       Limit: count,
     })
   );
-  console.log(`found ${resp.Items.length} restaurants`);
+  logger.debug('found restaurants', {
+    count: resp.Items.length,
+  });
   return resp.Items;
 };
 
