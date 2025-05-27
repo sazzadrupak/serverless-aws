@@ -1,4 +1,5 @@
 import { Logger } from '@aws-lambda-powertools/logger';
+import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import middy from '@middy/core';
@@ -33,6 +34,8 @@ const findRestaurantsByTheme = async (theme, count) => {
 };
 
 export const handler = middy(async (event, context) => {
+  logger.refreshSampleRateCalculation();
+
   logger.debug('Secure string', {
     secretString: context.secretString,
   });
@@ -48,14 +51,16 @@ export const handler = middy(async (event, context) => {
   };
 
   return response;
-}).use(
-  ssm({
-    cache: true,
-    cacheExpiry: 1 * 60 * 1000, // 1 mins
-    setToContext: true,
-    fetchData: {
-      config: `/${serviceName}/${ssmStage}/search-restaurants/config`,
-      secretString: `/${serviceName}/${ssmStage}/search-restaurants/secretString`,
-    },
-  })
-);
+})
+  .use(
+    ssm({
+      cache: true,
+      cacheExpiry: 1 * 60 * 1000, // 1 mins
+      setToContext: true,
+      fetchData: {
+        config: `/${serviceName}/${ssmStage}/search-restaurants/config`,
+        secretString: `/${serviceName}/${ssmStage}/search-restaurants/secretString`,
+      },
+    })
+  )
+  .use(injectLambdaContext(logger));

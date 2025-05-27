@@ -1,5 +1,7 @@
 import { Logger } from '@aws-lambda-powertools/logger';
+import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import middy from '@middy/core';
 import { AwsClient } from 'aws4fetch';
 import fs from 'fs';
 import Mustache from 'mustache';
@@ -42,7 +44,9 @@ const getRestaurants = async () => {
   return await resp.json();
 };
 
-export const handler = async (event, context) => {
+export const handler = middy(async (event, context) => {
+  logger.refreshSampleRateCalculation();
+
   const restaurants = await getRestaurants();
   logger.debug('got restaurants', { count: restaurants.length });
   const dayOfWeek = days[new Date().getDay()];
@@ -65,4 +69,4 @@ export const handler = async (event, context) => {
   };
 
   return response;
-};
+}).use(injectLambdaContext(logger));

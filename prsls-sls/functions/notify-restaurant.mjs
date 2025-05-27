@@ -1,11 +1,13 @@
-import { makeIdempotent } from '@aws-lambda-powertools/idempotency';
 import { DynamoDBPersistenceLayer } from '@aws-lambda-powertools/idempotency/dynamodb';
+import { makeHandlerIdempotent } from '@aws-lambda-powertools/idempotency/middleware';
 import { Logger } from '@aws-lambda-powertools/logger';
+import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
 import {
   EventBridgeClient,
   PutEventsCommand,
 } from '@aws-sdk/client-eventbridge';
 import { PublishCommand, SNSClient } from '@aws-sdk/client-sns';
+import middy from '@middy/core';
 
 const logger = new Logger({ serviceName: process.env.serviceName });
 const eventBridge = new EventBridgeClient();
@@ -18,6 +20,8 @@ const persistenceStore = new DynamoDBPersistenceLayer({
 });
 
 const _handler = async (event) => {
+  logger.refreshSampleRateCalculation();
+
   const order = event.detail;
   const publishCmd = new PublishCommand({
     Message: JSON.stringify(order),
@@ -48,4 +52,8 @@ const _handler = async (event) => {
   return orderId;
 };
 
-export const handler = makeIdempotent(_handler, { persistenceStore });
+export const handler = middy(_handler).use(injectLambdaContext(logger)).use(
+  makeHandlerIdempotent({
+    persistenceStore,
+  })
+);

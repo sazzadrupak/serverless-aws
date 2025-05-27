@@ -1,8 +1,10 @@
 import { Logger } from '@aws-lambda-powertools/logger';
+import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
 import {
   EventBridgeClient,
   PutEventsCommand,
 } from '@aws-sdk/client-eventbridge';
+import middy from '@middy/core'; // stylish Node.js middleware engine for AWS Lambda
 import { Chance } from 'chance';
 
 const logger = new Logger({ serviceName: process.env.serviceName });
@@ -11,7 +13,9 @@ const chance = Chance();
 
 const busName = process.env.bus_name;
 
-export const handler = async (event) => {
+export const handler = middy(async (event) => {
+  logger.refreshSampleRateCalculation();
+
   const restaurantName = JSON.parse(event.body).restaurantName;
 
   const orderId = chance.guid();
@@ -45,4 +49,4 @@ export const handler = async (event) => {
     }),
   };
   return response;
-};
+}).use(injectLambdaContext(logger));

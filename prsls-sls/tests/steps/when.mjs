@@ -80,7 +80,9 @@ const viaEventBridge = async (busName, source, detailType, detail) => {
 const viaHandler = async (event, functionName) => {
   const { handler } = await import(`${APP_ROOT}/functions/${functionName}.mjs`);
 
-  const context = {};
+  const context = {
+    getRemainingTimeInMillis: () => 5000, // getRemainingTimeInMillis returns the number of milliseconds left before the function times out
+  };
   const response = await handler(event, context);
   const contentType = _.get(
     response,
