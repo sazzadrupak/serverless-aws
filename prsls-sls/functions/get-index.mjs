@@ -1,11 +1,14 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
+import { Tracer } from '@aws-lambda-powertools/tracer';
+import { captureLambdaHandler } from '@aws-lambda-powertools/tracer/middleware';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import middy from '@middy/core';
 import { AwsClient } from 'aws4fetch';
 import fs from 'fs';
 import Mustache from 'mustache';
 
+const tracer = new Tracer({ serviceName: process.env.serviceName });
 const logger = new Logger({
   serviceName: process.env.SERVICE_NAME || 'get-index',
 });
@@ -41,7 +44,10 @@ const getRestaurants = async () => {
   if (!resp.ok) {
     throw new Error('Failed to fetch restaurants: ' + resp.statusText);
   }
-  return await resp.json();
+  const data = await resp.json();
+  tracer.addResponseAsMetadata(data, 'GET /restaurants');
+
+  return data;
 };
 
 export const handler = middy(async (event, context) => {
@@ -69,4 +75,6 @@ export const handler = middy(async (event, context) => {
   };
 
   return response;
-}).use(injectLambdaContext(logger));
+})
+  .use(injectLambdaContext(logger))
+  .use(captureLambdaHandler(tracer));

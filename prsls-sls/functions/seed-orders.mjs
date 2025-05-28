@@ -1,13 +1,17 @@
-import {
-  IdempotencyConfig,
-  makeIdempotent,
-} from '@aws-lambda-powertools/idempotency';
 import { DynamoDBPersistenceLayer } from '@aws-lambda-powertools/idempotency/dynamodb';
+import { makeHandlerIdempotent } from '@aws-lambda-powertools/idempotency/middleware';
+import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
+import { Tracer } from '@aws-lambda-powertools/tracer';
+import { captureLambdaHandler } from '@aws-lambda-powertools/tracer/middleware';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import middy from '@middy/core';
 
 const dynamodbClient = new DynamoDB();
 const dynamodb = DynamoDBDocumentClient.from(dynamodbClient);
+const tracer = new Tracer({ serviceName: process.env.serviceName });
+tracer.captureAWSv3Client(dynamodb);
+
 const persistenceStore = new DynamoDBPersistenceLayer({
   tableName: process.env.IdempotencyTableName,
 });
@@ -28,9 +32,11 @@ const _handler = async (event) => {
   );
 };
 
-export const handler = makeIdempotent(_handler, {
-  persistenceStore,
-  config: new IdempotencyConfig({
-    eventKeyJmesPath: 'detail.orderId',
-  }),
-});
+export const handler = middy(_handler)
+  .use(injectLambdaContext(logger))
+  .use(
+    makeHandlerIdempotent({
+      persistenceStore,
+    })
+  )
+  .use(captureLambdaHandler(tracer));

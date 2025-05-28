@@ -2,6 +2,8 @@ import { DynamoDBPersistenceLayer } from '@aws-lambda-powertools/idempotency/dyn
 import { makeHandlerIdempotent } from '@aws-lambda-powertools/idempotency/middleware';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
+import { Tracer } from '@aws-lambda-powertools/tracer';
+import { captureLambdaHandler } from '@aws-lambda-powertools/tracer/middleware';
 import {
   EventBridgeClient,
   PutEventsCommand,
@@ -10,8 +12,13 @@ import { PublishCommand, SNSClient } from '@aws-sdk/client-sns';
 import middy from '@middy/core';
 
 const logger = new Logger({ serviceName: process.env.serviceName });
+const tracer = new Tracer({ serviceName: process.env.serviceName });
+
 const eventBridge = new EventBridgeClient();
+tracer.captureAWSv3Client(eventBridge);
+
 const sns = new SNSClient();
+tracer.captureAWSv3Client(sns);
 
 const busName = process.env.bus_name;
 const topicArn = process.env.restaurant_notification_topic;
@@ -52,8 +59,11 @@ const _handler = async (event) => {
   return orderId;
 };
 
-export const handler = middy(_handler).use(injectLambdaContext(logger)).use(
-  makeHandlerIdempotent({
-    persistenceStore,
-  })
-);
+export const handler = middy(_handler)
+  .use(injectLambdaContext(logger))
+  .use(
+    makeHandlerIdempotent({
+      persistenceStore,
+    })
+  )
+  .use(captureLambdaHandler(tracer));

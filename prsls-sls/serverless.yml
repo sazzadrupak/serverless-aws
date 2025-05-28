@@ -18,6 +18,18 @@ provider:
     POWERTOOLS_LOGGER_SAMPLE_RATE: 0.1 # 0.1 means 10%. This way, even in production, where the log level is set to "info" (meaning logs below the "info" level would be omitted), we will still get the debug logs from 10% of the invocations.
     POWERTOOLS_LOGGER_LOG_EVENT: true # This tells the logger to log the Lambda invocation event. keep in mind that there is no built-in data scrubbing. So any sensitive information (such as PII data) in the invocation event would be included in your logs.
 
+  tracing:
+    lambda: true
+    apiGateway: true
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - xray:PutTraceSegments
+            - xray:PutTelemetryRecords
+          Resource: '*'
+
 stepFunctions:
   stateMachines:
     orderFlow:
@@ -446,3 +458,5 @@ custom:
   logLevel:
     prod: ERROR
     default: INFO
+  serverless-iam-roles-per-function:
+    defaultInherit: true

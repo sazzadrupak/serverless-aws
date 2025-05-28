@@ -1,5 +1,7 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
+import { Tracer } from '@aws-lambda-powertools/tracer';
+import { captureLambdaHandler } from '@aws-lambda-powertools/tracer/middleware';
 import {
   EventBridgeClient,
   PutEventsCommand,
@@ -8,9 +10,12 @@ import middy from '@middy/core'; // stylish Node.js middleware engine for AWS La
 import { Chance } from 'chance';
 
 const logger = new Logger({ serviceName: process.env.serviceName });
-const eventBridge = new EventBridgeClient();
-const chance = Chance();
+const tracer = new Tracer({ serviceName: process.env.serviceName });
 
+const eventBridge = new EventBridgeClient();
+tracer.captureAWSv3Client(eventBridge);
+
+const chance = Chance();
 const busName = process.env.bus_name;
 
 export const handler = middy(async (event) => {
@@ -49,4 +54,6 @@ export const handler = middy(async (event) => {
     }),
   };
   return response;
-}).use(injectLambdaContext(logger));
+})
+  .use(injectLambdaContext(logger))
+  .use(captureLambdaHandler(tracer));
