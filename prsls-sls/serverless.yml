@@ -51,6 +51,9 @@ functions:
       - Effect: Allow
         Action: execute-api:Invoke
         Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/${sls:stage}/GET/restaurants
+    package:
+      patterns:
+        - static/* # This tells the Serverless Framework to include the static folder in the package. This is where the index.html file is located.
 
   get-restaurants:
     handler: functions/get-restaurants.handler
@@ -460,3 +463,19 @@ custom:
     default: INFO
   serverless-iam-roles-per-function:
     defaultInherit: true
+
+build:
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: false
+    external:
+      - aws-xray-sdk-core # we can be more precise in what packages we exclude from bundling. Lambda Powertools tracer is not the culprit for not bundling well. It's the aws-xray-sdk-core packge, which is referenced and used by the tracer. to make sure the aws-xray-sdk-core exists in the deployment artefact, we need to install it as a production dependency so the Serverless Framework does not omit it during packaging.
+      # - '@aws-lambda-powertools/tracer' # This tells ESBuild not to bundle the @aws-lambda-powertools/tracer package and instead, leave it and its dependencies in a node_modules folder. If you run "npx sls package" or "npx sls deploy", you can check the generated artefact in the .serverless folder.
+
+package: # to resolve static assets bundling issue with esbuild
+  individually: true # This tells the Serverless Framework to produce a separate artefact for each function.
+
+# But it's worth keeping in mind that optimization usually requires sacrifices elsewhere.
+# For example, by excluding source maps, we might improve performance slightly, but it will also hurt our ability to troubleshoot problems. When it comes to cold starts, it's also worth remembering that, in most production environments, cold starts account for a tiny percentage (typically sub 1%) of invocations and likely won't even show up on your 99th percentile latency.
+# Before you invest a bunch of time and energy into optimizing cold start latency and making difficult trade-offs, you should first determine IF cold starts is a problem in your system and how much UX improvements you stand to gain in return.
